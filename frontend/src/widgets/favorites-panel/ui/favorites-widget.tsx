@@ -23,7 +23,7 @@ export function FavoritesWidget() {
               <div className="text-xs uppercase tracking-[0.08em] text-slate-500">Избранное</div>
               <div className="text-lg font-semibold text-slate-900">Сохранённые поля</div>
             </div>
-            <div className="rounded-pill bg-accent px-3 py-1 text-xs font-semibold text-white shadow-accent">
+            <div className="rounded-pill bg-accent px-3 py-1 text-xs font-semibold text-white shadow-accent shadow-md">
               {items.length}
             </div>
           </div>
@@ -31,7 +31,7 @@ export function FavoritesWidget() {
           <div className="mt-4 max-h-[400px] space-y-3 overflow-y-auto pr-1">
             {items.length === 0 ? (
               <div className="rounded-[24px] border border-dashed border-white/70 bg-white/30 p-4 text-sm text-slate-700">
-                Пока пусто. Люди редко могут пройти мимо кнопки «+», но, видимо, сегодня исключение.
+                Пока здесь ничего нет...
               </div>
             ) : null}
 
@@ -45,7 +45,7 @@ export function FavoritesWidget() {
                   <button
                     type="button"
                     onClick={() => focusFromFavorite({ area: item.area, parcelId: item.parcelId })}
-                    className="inline-flex items-center gap-2 rounded-pill bg-accent px-3 py-2 text-sm font-semibold text-white shadow-accent"
+                    className="inline-flex items-center gap-2 rounded-pill bg-accent px-3 py-2 text-sm font-semibold text-white shadow-accent shadow-md"
                   >
                     <Focus className="h-4 w-4" /> К полю
                   </button>

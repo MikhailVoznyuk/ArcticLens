@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "tailwind-merge": "^3.5.0"
   }
 }

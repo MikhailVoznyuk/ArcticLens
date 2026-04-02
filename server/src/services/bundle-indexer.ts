@@ -16,16 +16,64 @@ function inferYear(input: string) {
   return match ? Number(match[1]) : undefined;
 }
 
-function cleanMetricKey(fileName: string, area: AreaId, year?: number) {
-  const withoutExt = fileName.replace(/\.tif$/i, '');
-  const parts = withoutExt
+function trimKnownNoise(value: string, area: AreaId, year?: number) {
+  return value
+    .replace(/\.tif$/i, '')
     .replace(new RegExp(area, 'ig'), '')
     .replace(year ? new RegExp(String(year), 'g') : /$^/, '')
     .replace(/__+/g, '_')
-    .replace(/^_+|_+$/g, '');
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase();
+}
 
-  if (parts.includes('annual_composite') || parts.includes('composite')) return 'annual_composite';
-  return parts.toLowerCase();
+function canonicalizeMetricKey(group: MetricGroup, raw: string) {
+  const value = raw.toLowerCase();
+
+  if (group === 'composites') {
+    if (/(^|_)(annual_)?composite(s)?($|_)/.test(value) || value.includes('annual_composite') || value.includes('composite')) {
+      return 'annual_composite';
+    }
+  }
+
+  const orderedPatterns: Array<[string, RegExp[]]> = [
+    ['persistence_water_mask', [/persistence[_-]?water[_-]?mask/, /water[_-]?mask[_-]?persistence/]],
+    ['texture_anomaly_mask', [/texture[_-]?anomaly[_-]?mask/, /anomaly[_-]?mask/]],
+    ['water_mask', [/(^|_)water[_-]?mask($|_)/]],
+    ['change_mask', [/change[_-]?mask/]],
+    ['water_occurrence', [/water[_-]?occurrence/]],
+    ['water_growth', [/water[_-]?growth/]],
+    ['delta_ndvi', [/delta[_-]?ndvi/]],
+    ['delta_ndwi', [/delta[_-]?ndwi/]],
+    ['risk_score', [/risk[_-]?score/]],
+    ['hotspot_mask', [/hotspot[_-]?mask/, /hot[_-]?spot[_-]?mask/]],
+    ['aspect_sin', [/aspect[_-]?sin/]],
+    ['aspect_cos', [/aspect[_-]?cos/]],
+    ['roughness', [/roughness/]],
+    ['curvature', [/curvature/]],
+    ['slope', [/slope/]],
+    ['tri', [/(^|_)tri($|_)/, /terrain[_-]?ruggedness/]],
+    ['tpi', [/(^|_)tpi($|_)/, /topographic[_-]?position/]],
+    ['dem', [/(^|_)dem($|_)/, /elevation/]],
+    ['nir_red_ratio', [/nir[_-]?red[_-]?ratio/, /ratio[_-]?nir[_-]?red/]],
+    ['red_green_ratio', [/red[_-]?green[_-]?ratio/, /ratio[_-]?red[_-]?green/]],
+    ['brightness', [/brightness/]],
+    ['osavi', [/(^|_)osavi($|_)/]],
+    ['ndwi', [/(^|_)ndwi($|_)/]],
+    ['ndvi', [/(^|_)ndvi($|_)/]],
+  ];
+
+  for (const [canonical, patterns] of orderedPatterns) {
+    if (patterns.some((pattern) => pattern.test(value))) {
+      return canonical;
+    }
+  }
+
+  return value;
+}
+
+function cleanMetricKey(fileName: string, area: AreaId, group: MetricGroup, year?: number) {
+  const raw = trimKnownNoise(fileName, area, year);
+  return canonicalizeMetricKey(group, raw);
 }
 
 export function buildBundleIndex(dataRoot: string): IndexedBundle {
@@ -80,7 +128,7 @@ export function buildBundleIndex(dataRoot: string): IndexedBundle {
       tifFiles.forEach((absPath) => {
         const fileName = path.basename(absPath);
         const year = inferYear(fileName);
-        const metricKey = cleanMetricKey(fileName, area, year);
+        const metricKey = cleanMetricKey(fileName, area, group, year);
         const layer: LayerItem = {
           area,
           group,

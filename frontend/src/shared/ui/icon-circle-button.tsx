@@ -9,7 +9,7 @@ export function IconCircleButton({
   return (
     <button
       className={cn(
-        'flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-accent transition-transform duration-200 hover:scale-[1.03] active:scale-95',
+        'flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-accent shadow-md transition-transform duration-200 hover:scale-[1.03] active:scale-95',
         className,
       )}
       {...props}

@@ -1,11 +1,19 @@
 import { useEffect, useMemo } from 'react';
 import { Menu, SlidersHorizontal } from 'lucide-react';
 import { BASEMAPS } from '@/shared/config/basemaps';
-import { MAP_MODE_OPTIONS, getAvailableMetricOptions, getDefaultMetricId } from '@/shared/config/metric-catalog';
+import {
+  MAP_MODE_OPTIONS,
+  getAvailableMetricOptions,
+  getDefaultMetricId,
+  getMetricOptionById,
+} from '@/shared/config/metric-catalog';
 import { IconCircleButton } from '@/shared/ui/icon-circle-button';
 import { PillSelect } from '@/shared/ui/pill-select';
 import { useMapStore } from '@/entities/map/model/use-map-store';
+import {twMerge} from "tailwind-merge";
 import type { AreaMeta, LayersByArea } from '@/shared/types/map';
+
+const QUICK_INDEX_IDS = ['ndvi', 'ndwi', 'osavi'] as const;
 
 export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersByArea: LayersByArea }) {
   const toolbarOpen = useMapStore((state) => state.toolbarOpen);
@@ -27,6 +35,18 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
     [areaLayers, selectedMode],
   );
 
+  const quickIndexOptions = useMemo(
+    () =>
+      QUICK_INDEX_IDS.map((id) => getMetricOptionById(id)).filter(
+        (item): item is NonNullable<ReturnType<typeof getMetricOptionById>> => Boolean(item),
+      ),
+    [],
+  );
+
+  const selectedQuickIndexId = useMemo(() => {
+    return QUICK_INDEX_IDS.includes(selectedMetricId as (typeof QUICK_INDEX_IDS)[number]) ? selectedMetricId : QUICK_INDEX_IDS[0];
+  }, [selectedMetricId]);
+
   useEffect(() => {
     if (!metricOptions.some((item) => item.id === selectedMetricId)) {
       const nextMetricId = getDefaultMetricId(selectedMode, areaLayers);
@@ -35,45 +55,49 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
   }, [areaLayers, metricOptions, selectedMetricId, selectedMode, setMetricId]);
 
   return (
-    <div className="absolute right-6 top-6 z-[850] flex items-start gap-3">
-      <IconCircleButton onClick={toggleToolbar} aria-label="Открыть панель фильтров">
-        {toolbarOpen ? <SlidersHorizontal className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
-      </IconCircleButton>
-
-      {toolbarOpen ? (
-        <div className="glass-panel flex flex-wrap gap-3 rounded-[30px] px-4 py-3">
+    <div className="absolute right-6 top-6 z-[850] flex items-center">
+      <div
+          className={twMerge(`relative z-10 glass-panel flex  gap-3 translate-x-[28px] rounded-[30px] rounded-r-none py-2 overflow-hidden duration-300 ease-in-out`,
+              toolbarOpen ? 'w-[900px] px-4': 'w-0'
+          )}
+          style={!toolbarOpen ? {borderWidth: '0'} : {}}
+      >
+        <div className="flex flex-nowrap gap-3">
           <PillSelect
-            label="Режим"
+            label="Режим:"
             value={selectedMode}
             onChange={(value) => setMode(value as typeof selectedMode)}
             options={MAP_MODE_OPTIONS}
-            className="min-w-[220px]"
+            className="w-[234px]"
           />
 
           <PillSelect
-            label="Период"
+            label="Период:"
             value={selectedYear ? String(selectedYear) : ''}
             onChange={(value) => setYear(value ? Number(value) : undefined)}
             options={years.map((year) => ({ value: String(year), label: String(year) }))}
           />
 
           <PillSelect
-            label="Слой"
+            label="Слой:"
             value={selectedMetricId}
             onChange={setMetricId}
             options={metricOptions.map((item) => ({ value: item.id, label: item.label }))}
-            className="min-w-[240px]"
+            className="w-[180px]"
           />
 
           <PillSelect
-            label="Карта"
+            label="Карта:"
             value={selectedBasemapId}
             onChange={setBasemapId}
             options={BASEMAPS.map((item) => ({ value: item.id, label: item.label }))}
-            className="min-w-[220px]"
+            className="w-[224px]"
           />
         </div>
-      ) : null}
+      </div>
+      <IconCircleButton className='relative z-20' onClick={toggleToolbar} aria-label="Открыть панель фильтров">
+        {toolbarOpen ? <SlidersHorizontal className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
+      </IconCircleButton>
     </div>
   );
 }
