@@ -194,7 +194,7 @@ export function MapShell({
 
   return (
     <>
-      <MapContainer center={[61.5, 129.7]} zoom={7} className="h-full w-full" zoomControl>
+      <MapContainer center={[61.5, 129.7]} zoom={7} className="h-full w-full" zoomControl attributionControl={false}>
         <TileLayer url={selectedBasemap.url} attribution={selectedBasemap.attribution} />
 
         <FitController area={selectedArea} aoi={activeVectors?.aoi} parcels={activeVectors?.parcels} />
