@@ -6,13 +6,12 @@ import { useMapStore } from '@/entities/map/model/use-map-store';
 import { formatNumber, titleizeMetric } from '@/shared/lib/format';
 import type { ParcelDetail } from '@/shared/types/parcel';
 
-const TREND_KEYS = ['ndvi', 'ndwi', 'osavi', 'risk_score', 'brightness', 'water_occurrence'] as const;
+const TREND_KEYS = ['ndvi', 'ndwi', 'osavi', 'risk_score', 'water_occurrence'] as const;
 const TREND_COLORS: Record<(typeof TREND_KEYS)[number], string> = {
   ndvi: '#16a34a',
   ndwi: '#2563eb',
   osavi: '#65a30d',
   risk_score: '#ef4444',
-  brightness: '#64748b',
   water_occurrence: '#0ea5e9',
 };
 
@@ -30,15 +29,20 @@ export function ParcelAnalyticsModal({ detail }: { detail: ParcelDetail }) {
     year: row.year,
     ...row,
   }));
-
+  /*const pieSum: number = detail.popupMetrics
+      .filter((item) => (typeof item.value === 'number') && (item.label !== 'Brightness'))
+      .slice(0, 5).reduce((acum, item) => +(item.value ?? 0) + acum, 0) */
   const currentPieData = detail.popupMetrics
-    .filter((item) => typeof item.value === 'number')
+    .filter((item) => (typeof item.value === 'number') && (item.label !== 'Brightness'))
     .slice(0, 5)
     .map((item) => ({
       name: item.label,
       value: Number(item.value),
+      fill: TREND_COLORS[item.label.replace(' ', '_').toLowerCase()],
+      color: TREND_COLORS[item.label.replace(' ', '_').toLowerCase()],
     }));
 
+  console.log(currentPieData);
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-[#F7FBFF]/30 p-4 backdrop-blur-sm">
       <div className="glass-card max-h-[92vh] w-[1200px] max-w-full overflow-hidden rounded-[32px]">
