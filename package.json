@@ -1,0 +1,16 @@
+{
+  "name": "gis-demo-mvp",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,frontend -c cyan,magenta \"npm --workspace server run dev\" \"npm --workspace frontend run dev\"",
+    "build": "npm --workspace server run build && npm --workspace frontend run build",
+    "start": "concurrently -n server,frontend -c cyan,magenta \"npm --workspace server run start\" \"npm --workspace frontend run start\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
