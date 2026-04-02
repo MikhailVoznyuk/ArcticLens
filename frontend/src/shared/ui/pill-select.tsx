@@ -16,7 +16,7 @@ type Props = {
 
 export function PillSelect({ value, onChange, options, label, className }: Props) {
   return (
-    <label className={cn('relative flex min-w-[160px] items-center rounded-pill bg-accent px-4 py-2 text-white shadow-accent', className)}>
+    <label className={cn('relative flex min-w-[160px] items-center rounded-pill bg-accent px-4 py-2 text-white shadow-accent shadow-md', className)}>
       <span className="mr-3 text-[15px] font-medium">{label}</span>
       <select
         value={value}

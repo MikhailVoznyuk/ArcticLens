@@ -29,14 +29,14 @@ export function AreaSwitcher() {
           <button
             type="button"
             onClick={() => choose('yunkor')}
-            className={`rounded-pill px-4 py-2 text-sm font-semibold text-white shadow-accent ${selectedArea === 'yunkor' ? 'bg-accent' : 'bg-accent/80'}`}
+            className={`rounded-pill px-4 py-2 text-sm font-semibold text-white shadow-accent shadow-md ${selectedArea === 'yunkor' ? 'bg-accent' : 'bg-accent/80'}`}
           >
             Юнкор
           </button>
           <button
             type="button"
             onClick={() => choose('amga')}
-            className={`rounded-pill px-4 py-2 text-sm font-semibold text-white shadow-accent ${selectedArea === 'amga' ? 'bg-accent' : 'bg-accent/80'}`}
+            className={`rounded-pill px-4 py-2 text-sm font-semibold text-white shadow-accent shadow-md ${selectedArea === 'amga' ? 'bg-accent' : 'bg-accent/80'}`}
           >
             Амга
           </button>
