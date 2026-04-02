@@ -6,6 +6,7 @@ import fastifyStatic from '@fastify/static';
 import { z } from 'zod';
 import { buildBundleIndex } from './services/bundle-indexer.js';
 import { readJson } from './services/file-cache.js';
+import { normalizeFeatureCollection } from './lib/geojson-normalize.js';
 import { getParcelDetail } from './services/analytics.js';
 import { resolveLayer } from './services/layers.js';
 import type { AreaId, MetricGroup } from './types.js';
@@ -63,8 +64,8 @@ async function main() {
     }
 
     return {
-      aoi: readJson(entry.vectors.aoiPath),
-      parcels: readJson(entry.vectors.parcelsPath),
+      aoi: normalizeFeatureCollection(area, readJson(entry.vectors.aoiPath)),
+      parcels: normalizeFeatureCollection(area, readJson(entry.vectors.parcelsPath)),
     };
   });
 

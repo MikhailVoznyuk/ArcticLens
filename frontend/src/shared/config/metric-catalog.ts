@@ -35,8 +35,45 @@ export const METRIC_CATALOG: MetricOption[] = [
   { id: 'curvature', label: 'Curvature', group: 'terrain', key: 'curvature', modes: ['advanced'] },
 ];
 
+const METRIC_KEY_PATTERNS: Record<string, RegExp[]> = {
+  annual_composite: [/(^|_)(annual_)?composite(s)?($|_)/, /annual[_-]?composite/, /composite/],
+  ndvi: [/(^|_)ndvi($|_)/],
+  ndwi: [/(^|_)ndwi($|_)/],
+  osavi: [/(^|_)osavi($|_)/],
+  brightness: [/brightness/],
+  nir_red_ratio: [/nir[_-]?red[_-]?ratio/, /ratio[_-]?nir[_-]?red/],
+  red_green_ratio: [/red[_-]?green[_-]?ratio/, /ratio[_-]?red[_-]?green/],
+  water_mask: [/(^|_)water[_-]?mask($|_)/],
+  change_mask: [/change[_-]?mask/],
+  texture_anomaly_mask: [/texture[_-]?anomaly[_-]?mask/, /anomaly[_-]?mask/],
+  persistence_water_mask: [/persistence[_-]?water[_-]?mask/, /water[_-]?mask[_-]?persistence/],
+  water_occurrence: [/water[_-]?occurrence/],
+  delta_ndvi: [/delta[_-]?ndvi/],
+  delta_ndwi: [/delta[_-]?ndwi/],
+  water_growth: [/water[_-]?growth/],
+  risk_score: [/risk[_-]?score/],
+  hotspot_mask: [/hotspot[_-]?mask/, /hot[_-]?spot[_-]?mask/],
+  slope: [/slope/],
+  tpi: [/(^|_)tpi($|_)/, /topographic[_-]?position/],
+  roughness: [/roughness/],
+  dem: [/(^|_)dem($|_)/, /elevation/],
+  tri: [/(^|_)tri($|_)/, /terrain[_-]?ruggedness/],
+  curvature: [/curvature/],
+};
+
 function matchesMode(option: MetricOption, mode: MapMode) {
   return mode === 'advanced' ? true : option.modes.includes(mode);
+}
+
+export function metricKeyMatches(candidate: string, expectedKey: string) {
+  const value = candidate.toLowerCase();
+  const key = expectedKey.toLowerCase();
+  if (value === key) return true;
+  return (METRIC_KEY_PATTERNS[key] ?? []).some((pattern) => pattern.test(value));
+}
+
+export function hasMetricKey(metricKeys: string[] | undefined, expectedKey: string) {
+  return (metricKeys ?? []).some((item) => metricKeyMatches(item, expectedKey));
 }
 
 export function getMetricOptionById(metricId?: string) {
@@ -46,7 +83,7 @@ export function getMetricOptionById(metricId?: string) {
 export function getAvailableMetricOptions(metricKeysByGroup: Partial<Record<MetricOption['group'], string[]>> | undefined, mode: MapMode) {
   return METRIC_CATALOG.filter((option) => {
     const keys = metricKeysByGroup?.[option.group] ?? [];
-    return keys.includes(option.key) && matchesMode(option, mode);
+    return hasMetricKey(keys, option.key) && matchesMode(option, mode);
   });
 }
 

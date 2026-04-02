@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { GeoJSON, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { BASEMAPS } from '@/shared/config/basemaps';
-import { getDefaultMetricId, getMetricOptionById } from '@/shared/config/metric-catalog';
+import { getDefaultMetricId, getMetricOptionById, hasMetricKey } from '@/shared/config/metric-catalog';
 import { resolveLayer } from '@/entities/map/api/map-api';
 import { getParcelDetail } from '@/entities/parcel/api/parcel-api';
 import { useMapStore } from '@/entities/map/model/use-map-store';
@@ -91,7 +91,7 @@ export function MapShell({
   const requestRef = useRef(0);
   const parcelRequestRef = useRef(0);
   const areaLayers = layersByArea[selectedArea];
-  const metricAvailable = selectedMetric ? (areaLayers[selectedMetric.group] ?? []).includes(selectedMetric.key) : false;
+  const metricAvailable = selectedMetric ? hasMetricKey(areaLayers[selectedMetric.group], selectedMetric.key) : false;
 
   useEffect(() => {
     const years = areas.find((area) => area.id === selectedArea)?.years ?? [];
@@ -210,6 +210,8 @@ export function MapShell({
         {activeVectors?.aoi ? (
           <GeoJSON
             data={activeVectors.aoi as never}
+            smoothFactor={0}
+            interactive={false}
             style={{ color: '#009DFF', weight: 2, opacity: 0.85, fillOpacity: 0 }}
           />
         ) : null}
@@ -217,6 +219,7 @@ export function MapShell({
         {activeVectors?.parcels ? (
           <GeoJSON
             data={activeVectors.parcels as never}
+            smoothFactor={0}
             style={parcelsStyle}
             onEachFeature={(feature, layer) => {
               layer.on('mouseover', () => {
