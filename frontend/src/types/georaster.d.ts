@@ -1,3 +1,7 @@
 declare module 'georaster' {
-  export default function parseGeoraster(data: ArrayBuffer): Promise<unknown>;
+  type ParsedGeoRaster = {
+    noDataValue?: number | null;
+  };
+
+  export default function parseGeoraster(data: ArrayBuffer): Promise<ParsedGeoRaster>;
 }

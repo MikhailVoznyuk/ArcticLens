@@ -92,6 +92,7 @@ export function MapShell({
   const parcelRequestRef = useRef(0);
   const areaLayers = layersByArea[selectedArea];
   const metricAvailable = selectedMetric ? hasMetricKey(areaLayers[selectedMetric.group], selectedMetric.key) : false;
+  const shouldUseComposite = !selectedMetric || selectedMetric.group === 'composites' || !metricAvailable;
 
   useEffect(() => {
     const years = areas.find((area) => area.id === selectedArea)?.years ?? [];
@@ -116,11 +117,18 @@ export function MapShell({
 
     async function run() {
       const req = ++requestRef.current;
-      const composite = await resolveLayer(selectedArea, 'composites', 'annual_composite', selectedYear);
-      if (cancelled || req !== requestRef.current) return;
-      setCompositeLayerState(composite);
 
-      if (!selectedMetric || selectedMetric.group === 'composites' || !metricAvailable) {
+      if (shouldUseComposite) {
+        const composite = await resolveLayer(selectedArea, 'composites', 'annual_composite', selectedYear);
+        if (cancelled || req !== requestRef.current) return;
+        setCompositeLayerState(composite);
+        setMetricLayerState(null);
+        return;
+      }
+
+      setCompositeLayerState(null);
+
+      if (!selectedMetric) {
         setMetricLayerState(null);
         return;
       }
@@ -139,7 +147,7 @@ export function MapShell({
     return () => {
       cancelled = true;
     };
-  }, [metricAvailable, selectedArea, selectedMetric, selectedYear]);
+  }, [metricAvailable, selectedArea, selectedMetric, selectedYear, shouldUseComposite]);
 
   useEffect(() => {
     if (!selectedParcelId && selectedParcelDetail) {
