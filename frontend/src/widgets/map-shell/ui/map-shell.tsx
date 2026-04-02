@@ -6,7 +6,7 @@ import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
-import { GeoJSON, MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { GeoJSON, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { BASEMAPS } from '@/shared/config/basemaps';
 import { getDefaultMetricId, getMetricOptionById, hasMetricKey } from '@/shared/config/metric-catalog';
 import { resolveLayer } from '@/entities/map/api/map-api';
@@ -24,6 +24,47 @@ function fitFeatureCollection(map: L.Map, featureCollection?: GeoJSON.FeatureCol
   if (bounds.isValid()) {
     map.fitBounds(bounds.pad(0.08));
   }
+}
+
+function MapInteractionTracker({ onInteractionChange }: { onInteractionChange: (value: boolean) => void }) {
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useMapEvents({
+    dragstart: () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = null;
+      }
+      onInteractionChange(true);
+    },
+    zoomstart: () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = null;
+      }
+      onInteractionChange(true);
+    },
+    dragend: () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+      }
+      settleTimerRef.current = setTimeout(() => onInteractionChange(false), 140);
+    },
+    zoomend: () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+      }
+      settleTimerRef.current = setTimeout(() => onInteractionChange(false), 140);
+    },
+  });
+
+  useEffect(() => () => {
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+    }
+  }, []);
+
+  return null;
 }
 
 function FitController({ aoi, area, parcels }: { aoi?: GeoJSON.FeatureCollection; area: AreaId; parcels?: GeoJSON.FeatureCollection }) {
@@ -85,6 +126,7 @@ export function MapShell({
 
   const [compositeLayerState, setCompositeLayerState] = useState<LayerResolveResponse | null>(null);
   const [metricLayerState, setMetricLayerState] = useState<LayerResolveResponse | null>(null);
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
   const activeVectors = vectors[selectedArea];
   const selectedMetric = getMetricOptionById(selectedMetricId) ?? getMetricOptionById('ndvi');
   const selectedBasemap = BASEMAPS.find((item) => item.id === selectedBasemapId) ?? BASEMAPS[0];
@@ -202,17 +244,28 @@ export function MapShell({
 
   return (
     <>
-      <MapContainer center={[61.5, 129.7]} zoom={7} className="h-full w-full" zoomControl attributionControl={false}>
+      <MapContainer center={[61.5, 129.7]} zoom={7} className="h-full w-full" zoomControl attributionControl={false} preferCanvas>
         <TileLayer url={selectedBasemap.url} attribution={selectedBasemap.attribution} />
 
+        <MapInteractionTracker onInteractionChange={setIsMapInteracting} />
         <FitController area={selectedArea} aoi={activeVectors?.aoi} parcels={activeVectors?.parcels} />
 
         {compositeLayerState?.url ? (
-          <RasterOverlay url={compositeLayerState.url} group="composites" metricKey="annual_composite" />
+          <RasterOverlay
+            url={compositeLayerState.url}
+            group="composites"
+            metricKey="annual_composite"
+            quality={isMapInteracting ? 'interactive' : 'settled'}
+          />
         ) : null}
 
         {metricLayerState?.url ? (
-          <RasterOverlay url={metricLayerState.url} group={metricLayerState.group} metricKey={metricLayerState.metricKey} />
+          <RasterOverlay
+            url={metricLayerState.url}
+            group={metricLayerState.group}
+            metricKey={metricLayerState.metricKey}
+            quality={isMapInteracting ? 'interactive' : 'settled'}
+          />
         ) : null}
 
         {activeVectors?.aoi ? (

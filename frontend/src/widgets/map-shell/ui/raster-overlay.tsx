@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import parseGeoraster from 'georaster';
 import type GeoRasterLayer from 'georaster-layer-for-leaflet';
@@ -13,6 +13,21 @@ const WATER_PALETTE = ['#FFFFFF', '#3C70FF'] as const;
 type ParsedGeoRaster = {
   noDataValue?: number | null;
 };
+
+type RenderQuality = 'interactive' | 'settled';
+
+type RasterRenderConfig = {
+  opacity: number;
+  resolution: number;
+  resampleMethod: 'nearest' | 'bilinear';
+  updateWhenIdle: boolean;
+  updateWhenZooming: boolean;
+  updateInterval: number;
+  keepBuffer: number;
+};
+
+const georasterCache = new Map<string, Promise<ParsedGeoRaster>>();
+let georasterLayerModulePromise: Promise<typeof GeoRasterLayer> | null = null;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -130,17 +145,96 @@ function colorize(group: MetricGroup, metricKey: string, raw: number) {
   return null;
 }
 
+function getRenderConfig(group: MetricGroup, quality: RenderQuality): RasterRenderConfig {
+  if (group === 'composites') {
+    return quality === 'interactive'
+      ? {
+          opacity: 0.96,
+          resolution: 128,
+          resampleMethod: 'nearest',
+          updateWhenIdle: true,
+          updateWhenZooming: false,
+          updateInterval: 320,
+          keepBuffer: 1,
+        }
+      : {
+          opacity: 0.96,
+          resolution: 192,
+          resampleMethod: 'bilinear',
+          updateWhenIdle: true,
+          updateWhenZooming: false,
+          updateInterval: 240,
+          keepBuffer: 1,
+        };
+  }
+
+  return quality === 'interactive'
+    ? {
+        opacity: 0.82,
+        resolution: 128,
+        resampleMethod: 'nearest',
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        updateInterval: 320,
+        keepBuffer: 1,
+      }
+    : {
+        opacity: 0.82,
+        resolution: 320,
+        resampleMethod: 'bilinear',
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        updateInterval: 220,
+        keepBuffer: 1,
+      };
+}
+
+async function loadGeoRasterLayerModule() {
+  if (!georasterLayerModulePromise) {
+    georasterLayerModulePromise = import('georaster-layer-for-leaflet').then(
+      (module) => (module.default ?? module) as typeof GeoRasterLayer,
+    );
+  }
+
+  return georasterLayerModulePromise;
+}
+
+async function loadGeoRaster(url: string) {
+  const absoluteUrl = apiUrl(url);
+  const cached = georasterCache.get(absoluteUrl);
+  if (cached) return cached;
+
+  const promise = fetch(absoluteUrl)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to fetch raster: ${response.status} ${response.statusText}`);
+      }
+      return response.arrayBuffer();
+    })
+    .then((arrayBuffer) => parseGeoraster(arrayBuffer) as Promise<ParsedGeoRaster>)
+    .catch((error) => {
+      georasterCache.delete(absoluteUrl);
+      throw error;
+    });
+
+  georasterCache.set(absoluteUrl, promise);
+  return promise;
+}
+
 export function RasterOverlay({
   url,
   group,
   metricKey,
+  quality = 'settled',
 }: {
   url?: string;
   group: MetricGroup;
   metricKey: string;
+  quality?: RenderQuality;
 }) {
   const map = useMap();
   const layerRef = useRef<GeoRasterLayer | null>(null);
+  const renderConfig = useMemo(() => getRenderConfig(group, quality), [group, quality]);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,24 +247,23 @@ export function RasterOverlay({
         layerRef.current = null;
       }
 
-      const module = await import('georaster-layer-for-leaflet');
-      const GeoRasterLeafletLayer = (module.default ?? module) as typeof GeoRasterLayer;
-
-      const response = await fetch(apiUrl(url));
-      const arrayBuffer = await response.arrayBuffer();
-      const georaster = (await parseGeoraster(arrayBuffer)) as ParsedGeoRaster;
+      const [GeoRasterLeafletLayer, georaster] = await Promise.all([
+        loadGeoRasterLayerModule(),
+        loadGeoRaster(url),
+      ]);
       if (cancelled) return;
 
       const noDataValue = typeof georaster.noDataValue === 'number' ? georaster.noDataValue : undefined;
 
       const layer = new GeoRasterLeafletLayer({
         georaster,
-        opacity: group === 'composites' ? 0.96 : 0.82,
-        resolution: group === 'composites' ? 256 : 512,
-        resampleMethod: 'bilinear',
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        keepBuffer: 2,
+        opacity: renderConfig.opacity,
+        resolution: renderConfig.resolution,
+        resampleMethod: renderConfig.resampleMethod,
+        updateWhenIdle: renderConfig.updateWhenIdle,
+        updateWhenZooming: renderConfig.updateWhenZooming,
+        updateInterval: renderConfig.updateInterval,
+        keepBuffer: renderConfig.keepBuffer,
         pixelValuesToColorFn:
           group === 'composites'
             ? undefined
@@ -197,7 +290,7 @@ export function RasterOverlay({
         layerRef.current = null;
       }
     };
-  }, [group, map, metricKey, url]);
+  }, [group, map, metricKey, renderConfig, url]);
 
   return null;
 }

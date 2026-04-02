@@ -8,6 +8,7 @@ declare module 'georaster-layer-for-leaflet' {
     resampleMethod?: 'nearest' | 'bilinear';
     updateWhenIdle?: boolean;
     updateWhenZooming?: boolean;
+    updateInterval?: number;
     keepBuffer?: number;
     pixelValuesToColorFn?: (pixelValues: number[]) => string | null | undefined;
   };
