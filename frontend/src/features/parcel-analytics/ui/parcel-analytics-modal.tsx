@@ -1,5 +1,5 @@
 import { Fragment, useMemo } from 'react';
-import { Heart, Plus, X } from 'lucide-react';
+import { FolderClosed, Plus, X } from 'lucide-react';
 import { CartesianGrid, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useFavoritesStore } from '@/features/favorites/model/use-favorites-store';
 import { useMapStore } from '@/entities/map/model/use-map-store';
@@ -56,7 +56,7 @@ export function ParcelAnalyticsModal({ detail }: { detail: ParcelDetail }) {
               onClick={() => toggleFavorite({ area: detail.area, parcelId: detail.parcelId, title: detail.title })}
               className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white shadow-accent shadow-md"
             >
-              {hasFavorite ? <Heart className="h-5 w-5 fill-current" /> : <Plus className="h-5 w-5" />}
+              {hasFavorite ? <FolderClosed className="h-5 w-5 fill-current" /> : <Plus className="h-5 w-5" />}
             </button>
             <button
               type="button"

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Heart, Plus, X } from 'lucide-react';
+import { FolderClosed, Plus, X } from 'lucide-react';
 import { useFavoritesStore } from '@/features/favorites/model/use-favorites-store';
 import { useMapStore } from '@/entities/map/model/use-map-store';
 import { formatNumber } from '@/shared/lib/format';
@@ -36,10 +36,10 @@ export function ParcelPopup({ detail }: { detail: ParcelDetail }) {
           <button
             type="button"
             onClick={() => toggleFavorite({ area: detail.area, parcelId: detail.parcelId, title: detail.title })}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white shadow-accent"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white shadow-accent shadow-md"
             title="Добавить в избранное"
           >
-            {hasFavorite ? <Heart className="h-5 w-5 fill-current" /> : <Plus className="h-5 w-5" />}
+            {hasFavorite ? <FolderClosed className="h-5 w-5 " /> : <FolderClosed className="h-5 w-5 fill-current" />}
           </button>
           <button
             type="button"
@@ -72,7 +72,7 @@ export function ParcelPopup({ detail }: { detail: ParcelDetail }) {
         <button
           type="button"
           onClick={openAnalytics}
-          className="rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-white shadow-accent"
+          className="rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-white shadow-accent shadow-md"
         >
           Обзор
         </button>
