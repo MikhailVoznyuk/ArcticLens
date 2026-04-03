@@ -44,6 +44,8 @@ function canonicalizeMetricKey(group: MetricGroup, raw: string) {
     ['water_growth', [/water[_-]?growth/]],
     ['delta_ndvi', [/delta[_-]?ndvi/]],
     ['delta_ndwi', [/delta[_-]?ndwi/]],
+    ['heatmap', [/pred[_-]?ml[_-]?final[_-]?heatmap/, /(^|_)heatmap($|_)/]],
+    ['gap', [/ml[_-]?minus[_-]?baseline/, /heatmap[_-]?gap/, /(^|_)gap($|_)/]],
     ['risk_score', [/risk[_-]?score/]],
     ['hotspot_mask', [/hotspot[_-]?mask/, /hot[_-]?spot[_-]?mask/]],
     ['aspect_sin', [/aspect[_-]?sin/]],
@@ -124,7 +126,10 @@ export function buildBundleIndex(dataRoot: string): IndexedBundle {
     }
 
     for (const group of GROUPS) {
-      const tifFiles = fg.sync(path.join(base, 'rasters', group, '*.tif'), { absolute: true }).sort();
+      const tifFiles = fg.sync(path.join(base, 'rasters', group, '*.tif'), { absolute: true })
+        .filter((absPath) => !/colored[_-]?rgb[_-]?masked/i.test(path.basename(absPath)))
+        .sort();
+
       tifFiles.forEach((absPath) => {
         const fileName = path.basename(absPath);
         const year = inferYear(fileName);

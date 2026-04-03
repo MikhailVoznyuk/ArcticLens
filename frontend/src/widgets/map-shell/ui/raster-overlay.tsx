@@ -71,7 +71,7 @@ function interpolatePalette(palette: readonly string[], value: number, alpha: nu
 }
 
 function normalizeMetricValue(group: MetricGroup, metricKey: string, raw: number) {
-  if (group === 'experimental' && metricKey === 'risk_score') {
+  if (group === 'experimental' && (metricKey === 'risk_score' || metricKey === 'heatmap')) {
     return clamp(raw, 0, 1);
   }
 
@@ -97,7 +97,7 @@ function colorize(group: MetricGroup, metricKey: string, raw: number) {
     return raw <= 0 ? null : rgba(255, 0, 76, 0.7);
   }
 
-  if (group === 'experimental' && metricKey === 'risk_score') {
+  if (group === 'experimental' && (metricKey === 'risk_score' || metricKey === 'heatmap')) {
     return interpolatePalette(VEGETATION_PALETTE, normalizeMetricValue(group, metricKey, raw), 0.82);
   }
 

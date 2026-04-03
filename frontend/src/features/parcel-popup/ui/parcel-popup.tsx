@@ -9,6 +9,7 @@ export function ParcelPopup({ detail }: { detail: ParcelDetail }) {
   const setSelectedParcelId = useMapStore((state) => state.setSelectedParcelId);
   const setSelectedParcelDetail = useMapStore((state) => state.setSelectedParcelDetail);
   const openAnalytics = useMapStore((state) => state.openAnalytics);
+  const setSelectedParcelPoint = useMapStore((state) => state.setSelectedParcelPoint);
   const toggleFavorite = useFavoritesStore((state) => state.toggle);
   const favoriteItems = useFavoritesStore((state) => state.items);
 
@@ -20,7 +21,8 @@ export function ParcelPopup({ detail }: { detail: ParcelDetail }) {
   const close = useCallback(() => {
     setSelectedParcelId(undefined);
     setSelectedParcelDetail(undefined);
-  }, [setSelectedParcelDetail, setSelectedParcelId]);
+    setSelectedParcelPoint(undefined);
+  }, [setSelectedParcelDetail, setSelectedParcelId, setSelectedParcelPoint]);
 
   return (
     <div className="pointer-events-auto absolute left-1/2 top-1/2 z-[900] w-[360px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-glass glass-card p-5 text-slate-900">

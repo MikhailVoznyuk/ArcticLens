@@ -14,6 +14,7 @@ export const METRIC_CATALOG: MetricOption[] = [
   { id: 'ndvi', label: 'NDVI', group: 'indices', key: 'ndvi', modes: ['base', 'change', 'advanced'] },
   { id: 'ndwi', label: 'NDWI', group: 'indices', key: 'ndwi', modes: ['base', 'water', 'change', 'advanced'] },
   { id: 'osavi', label: 'OSAVI', group: 'indices', key: 'osavi', modes: ['base', 'advanced'] },
+  { id: 'heatmap', label: 'Heatmap', group: 'experimental', key: 'heatmap', modes: ['base', 'advanced'] },
   { id: 'brightness', label: 'Brightness', group: 'indices', key: 'brightness', modes: ['advanced'] },
   { id: 'nir-red-ratio', label: 'NIR/Red', group: 'indices', key: 'nir_red_ratio', modes: ['advanced'] },
   { id: 'red-green-ratio', label: 'Red/Green', group: 'indices', key: 'red_green_ratio', modes: ['advanced'] },
@@ -40,6 +41,7 @@ const METRIC_KEY_PATTERNS: Record<string, RegExp[]> = {
   ndvi: [/(^|_)ndvi($|_)/],
   ndwi: [/(^|_)ndwi($|_)/],
   osavi: [/(^|_)osavi($|_)/],
+  heatmap: [/pred[_-]?ml[_-]?final[_-]?heatmap/, /(^|_)heatmap($|_)/],
   brightness: [/brightness/],
   nir_red_ratio: [/nir[_-]?red[_-]?ratio/, /ratio[_-]?nir[_-]?red/],
   red_green_ratio: [/red[_-]?green[_-]?ratio/, /ratio[_-]?red[_-]?green/],
@@ -89,7 +91,7 @@ export function getAvailableMetricOptions(metricKeysByGroup: Partial<Record<Metr
 
 export function getDefaultMetricId(mode: MapMode, metricKeysByGroup: Partial<Record<MetricOption['group'], string[]>> | undefined) {
   const preferredByMode: Record<MapMode, string[]> = {
-    base: ['ndvi', 'ndwi', 'osavi', 'composite'],
+    base: ['ndvi', 'ndwi', 'osavi', 'heatmap', 'composite'],
     water: ['water-mask', 'persistence-water-mask', 'water-occurrence', 'delta-ndwi', 'water-growth', 'ndwi'],
     change: ['change-mask', 'delta-ndvi', 'delta-ndwi', 'ndvi'],
     risk: ['risk-score', 'hotspot-mask'],

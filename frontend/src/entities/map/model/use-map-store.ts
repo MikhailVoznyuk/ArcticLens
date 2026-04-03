@@ -14,6 +14,7 @@ type MapStore = {
   analyticsOpen: boolean;
   selectedParcelId?: string;
   selectedParcelDetail?: ParcelDetail;
+  selectedParcelPoint?: { lat: number; lng: number };
   fitToken: number;
   focusFavorite?: { area: AreaId; parcelId: string; openAnalytics?: boolean };
   setArea: (area: AreaId) => void;
@@ -28,6 +29,7 @@ type MapStore = {
   closeAnalytics: () => void;
   setSelectedParcelId: (id?: string) => void;
   setSelectedParcelDetail: (detail?: ParcelDetail) => void;
+  setSelectedParcelPoint: (point?: { lat: number; lng: number }) => void;
   requestFit: () => void;
   focusFromFavorite: (payload: { area: AreaId; parcelId: string; openAnalytics?: boolean }) => void;
   clearFavoriteFocus: () => void;
@@ -44,7 +46,7 @@ export const useMapStore = create<MapStore>((set) => ({
   favoritesOpen: false,
   analyticsOpen: false,
   fitToken: 0,
-  setArea: (selectedArea) => set({ selectedArea, selectedParcelId: undefined, selectedParcelDetail: undefined }),
+  setArea: (selectedArea) => set({ selectedArea, selectedParcelId: undefined, selectedParcelDetail: undefined, selectedParcelPoint: undefined }),
   setYear: (selectedYear) => set({ selectedYear }),
   setBasemapId: (selectedBasemapId) => set({ selectedBasemapId }),
   setMetricId: (selectedMetricId) => set({ selectedMetricId }),
@@ -55,6 +57,7 @@ export const useMapStore = create<MapStore>((set) => ({
   openAnalytics: () => set({ analyticsOpen: true }),
   closeAnalytics: () => set({ analyticsOpen: false }),
   setSelectedParcelId: (selectedParcelId) => set({ selectedParcelId }),
+  setSelectedParcelPoint: (selectedParcelPoint) => set({ selectedParcelPoint }),
   setSelectedParcelDetail: (selectedParcelDetail) => set({ selectedParcelDetail }),
   requestFit: () => set((s) => ({ fitToken: s.fitToken + 1 })),
   focusFromFavorite: (focusFavorite) =>
@@ -64,6 +67,7 @@ export const useMapStore = create<MapStore>((set) => ({
       analyticsOpen: false,
       selectedParcelId: focusFavorite.parcelId,
       selectedParcelDetail: undefined,
+      selectedParcelPoint: undefined,
       selectedArea: focusFavorite.area,
     }),
   clearFavoriteFocus: () => set({ focusFavorite: undefined }),

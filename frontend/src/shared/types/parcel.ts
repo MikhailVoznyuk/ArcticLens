@@ -13,6 +13,7 @@ export type ParcelDetail = {
   title: string;
   isValidForFullAnalytics?: boolean;
   popupMetrics: MetricValue[];
+  modalMetrics: MetricValue[];
   currentRecord: Record<string, string | number | boolean | null>;
   timeline: Array<Record<string, string | number | boolean | null>>;
 };
