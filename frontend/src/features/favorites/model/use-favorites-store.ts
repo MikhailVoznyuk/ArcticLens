@@ -9,6 +9,7 @@ type FavoritesStore = {
   add: (item: FavoriteParcel) => void;
   remove: (area: string, parcelId: string) => void;
   toggle: (item: FavoriteParcel) => void;
+  rename: (area: string, parcelId: string, title: string) => void;
   has: (area: string, parcelId: string) => boolean;
 };
 
@@ -33,6 +34,14 @@ export const useFavoritesStore = create<FavoritesStore>()(
         }
         get().add(item);
       },
+      rename: (area, parcelId, title) =>
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.area === area && item.parcelId === parcelId
+              ? { ...item, title: title.trim() || item.title }
+              : item,
+          ),
+        })),
       has: (area, parcelId) => get().items.some((item) => item.area === area && item.parcelId === parcelId),
     }),
     {

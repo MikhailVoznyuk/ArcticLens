@@ -18,7 +18,7 @@ export function AreaSwitcher() {
   return (
     <div className="absolute bottom-6 left-6 z-[850] flex items-end">
       <IconCircleButton className={'relative z-20'} onClick={toggleAreaPanel} aria-label="Открыть список зон">
-        {areaPanelOpen ? <MapPinned className="h-7 w-7" /> : <LocateFixed className="h-7 w-7" />}
+        {areaPanelOpen ? <LocateFixed className="h-7 w-7" /> : <LocateFixed className="h-7 w-7" />}
       </IconCircleButton>
 
         <div className={twMerge("relative z-10 -translate-x-[28px] glass-panel flex items-center gap-2 rounded-[30px] rounded-l-none px-3 py-2 pl-[42px] duration-300 overflow-hidden",

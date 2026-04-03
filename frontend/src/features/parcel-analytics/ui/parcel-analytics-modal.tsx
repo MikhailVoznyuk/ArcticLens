@@ -1,5 +1,5 @@
 import { Fragment, useMemo } from 'react';
-import { Heart, Plus, X } from 'lucide-react';
+import { FolderClosed, Plus, X } from 'lucide-react';
 import { CartesianGrid, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useFavoritesStore } from '@/features/favorites/model/use-favorites-store';
 import { useMapStore } from '@/entities/map/model/use-map-store';
@@ -29,20 +29,17 @@ export function ParcelAnalyticsModal({ detail }: { detail: ParcelDetail }) {
     year: row.year,
     ...row,
   }));
-  /*const pieSum: number = detail.popupMetrics
-      .filter((item) => (typeof item.value === 'number') && (item.label !== 'Brightness'))
-      .slice(0, 5).reduce((acum, item) => +(item.value ?? 0) + acum, 0) */
+
   const currentPieData = detail.popupMetrics
-    .filter((item) => (typeof item.value === 'number') && (item.label !== 'Brightness'))
+    .filter((item) => typeof item.value === 'number' && Number(item.value) >= 0)
     .slice(0, 5)
     .map((item) => ({
       name: item.label,
       value: Number(item.value),
-      fill: TREND_COLORS[item.label.replace(' ', '_').toLowerCase()],
-      color: TREND_COLORS[item.label.replace(' ', '_').toLowerCase()],
+      fill: TREND_COLORS[item.label.replace(' ', '_').toLowerCase() as keyof typeof TREND_COLORS],
+      color: TREND_COLORS[item.label.replace(' ', '_').toLowerCase() as keyof typeof TREND_COLORS],
     }));
 
-  console.log(currentPieData);
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-[#F7FBFF]/30 p-4 backdrop-blur-sm">
       <div className="glass-card max-h-[92vh] w-[1200px] max-w-full overflow-hidden rounded-[32px]">
@@ -59,7 +56,7 @@ export function ParcelAnalyticsModal({ detail }: { detail: ParcelDetail }) {
               onClick={() => toggleFavorite({ area: detail.area, parcelId: detail.parcelId, title: detail.title })}
               className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white shadow-accent shadow-md"
             >
-              {hasFavorite ? <Heart className="h-5 w-5 fill-current" /> : <Plus className="h-5 w-5" />}
+              {hasFavorite ? <FolderClosed className="h-5 w-5 fill-current" /> : <Plus className="h-5 w-5" />}
             </button>
             <button
               type="button"
@@ -74,7 +71,7 @@ export function ParcelAnalyticsModal({ detail }: { detail: ParcelDetail }) {
         <div className="scrollbar-thin grid max-h-[calc(92vh-92px)] gap-6 overflow-y-auto px-6 py-5 lg:grid-cols-[1.35fr_0.95fr]">
           <section className="space-y-6">
             <div className="grid gap-3 md:grid-cols-3">
-              {detail.popupMetrics.map((item) => (
+              {detail.modalMetrics.map((item) => (
                 <div key={item.key} className="rounded-[24px] border border-white/70 bg-[#E6E6E6]/50 shadow-md p-4">
                   <div className="text-xs uppercase tracking-[0.08em] text-slate-500">{item.label}</div>
                   <div className="mt-2 text-2xl font-semibold">

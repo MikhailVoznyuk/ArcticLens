@@ -8,6 +8,8 @@ const METRIC_ALIASES: Record<string, RegExp[]> = {
   ndwi: [/^ndwi(?:_|$)/i, /ndwi_mean/i],
   osavi: [/^osavi(?:_|$)/i, /osavi_mean/i],
   brightness: [/brightness/i],
+  heatmap: [/pred[_-]?ml[_-]?final[_-]?heatmap/i, /(^|_)heatmap($|_)/i],
+  gap: [/ml[_-]?minus[_-]?baseline/i, /heatmap[_-]?gap/i, /(^|_)gap($|_)/i],
   nir_red_ratio: [/nir.*red/i, /nir_red_ratio/i],
   red_green_ratio: [/red.*green/i, /red_green_ratio/i],
   risk_score: [/risk_score/i, /^risk$/i],
@@ -21,13 +23,61 @@ function findMetricKey(record: Record<string, unknown>, metric: string) {
   return Object.keys(record).find((key) => candidates.some((regex) => regex.test(key)));
 }
 
+function pickMetrics(record: Record<string, unknown>, order: string[], labels: Record<string, string>, limit?: number) {
+  const items = order
+    .map((metric) => {
+      const key = findMetricKey(record, metric);
+      if (!key) return null;
+      return {
+        key: metric,
+        label: labels[metric] ?? metric,
+        value: record[key] as string | number | boolean | null,
+      };
+    })
+    .filter(Boolean) as Array<{ key: string; label: string; value: string | number | boolean | null }>;
+
+  return typeof limit === 'number' ? items.slice(0, limit) : items;
+}
+
 function pickPopupMetrics(record: Record<string, unknown>) {
   const order = [
     'area_ha',
     'ndvi',
     'ndwi',
     'osavi',
+    'heatmap',
+    'nir_red_ratio',
+    'red_green_ratio',
+    'risk_score',
+    'water_occurrence',
+    'hotspot_mask',
+  ];
+
+  const labels: Record<string, string> = {
+    area_ha: 'Площадь, га',
+    ndvi: 'NDVI',
+    ndwi: 'NDWI',
+    osavi: 'OSAVI',
+    heatmap: 'Heatmap',
+    nir_red_ratio: 'NIR/Red',
+    red_green_ratio: 'Red/Green',
+    risk_score: 'Risk score',
+    water_occurrence: 'Water occurrence',
+    hotspot_mask: 'Hotspot',
+  };
+
+  return pickMetrics(record, order, labels, 7);
+}
+
+function pickModalMetrics(record: Record<string, unknown>) {
+  const order = [
+    'area_ha',
+    'ndvi',
+    'ndwi',
+    'osavi',
     'brightness',
+    'heatmap',
+    'gap',
     'nir_red_ratio',
     'red_green_ratio',
     'risk_score',
@@ -41,6 +91,8 @@ function pickPopupMetrics(record: Record<string, unknown>) {
     ndwi: 'NDWI',
     osavi: 'OSAVI',
     brightness: 'Brightness',
+    heatmap: 'Heatmap',
+    gap: 'Gap',
     nir_red_ratio: 'NIR/Red',
     red_green_ratio: 'Red/Green',
     risk_score: 'Risk score',
@@ -48,18 +100,7 @@ function pickPopupMetrics(record: Record<string, unknown>) {
     hotspot_mask: 'Hotspot',
   };
 
-  return order
-    .map((metric) => {
-      const key = findMetricKey(record, metric);
-      if (!key) return null;
-      return {
-        key: metric,
-        label: labels[metric] ?? metric,
-        value: record[key] as string | number | boolean | null,
-      };
-    })
-    .filter(Boolean)
-    .slice(0, 7);
+  return pickMetrics(record, order, labels);
 }
 
 function normalizeTrendRow(record: Record<string, unknown>, year: number) {
@@ -114,6 +155,7 @@ export function getParcelDetail(bundle: IndexedBundle, area: AreaId, parcelId: s
     title: `Поле ${parcelId}`,
     isValidForFullAnalytics: isValidKey ? Boolean(currentRecord[isValidKey]) : undefined,
     popupMetrics: pickPopupMetrics(currentRecord),
+    modalMetrics: pickModalMetrics(currentRecord),
     currentRecord,
     timeline,
   };

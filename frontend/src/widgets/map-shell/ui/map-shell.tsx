@@ -6,13 +6,14 @@ import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
-import { GeoJSON, MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { GeoJSON, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { BASEMAPS } from '@/shared/config/basemaps';
 import { getDefaultMetricId, getMetricOptionById, hasMetricKey } from '@/shared/config/metric-catalog';
 import { resolveLayer } from '@/entities/map/api/map-api';
 import { getParcelDetail } from '@/entities/parcel/api/parcel-api';
 import { useMapStore } from '@/entities/map/model/use-map-store';
 import { ParcelPopup } from '@/features/parcel-popup/ui/parcel-popup';
+import { enrichParcelDetailWithRasterMetrics } from '@/shared/lib/parcel-raster-metrics';
 import { ParcelAnalyticsModal } from '@/features/parcel-analytics/ui/parcel-analytics-modal';
 import { RasterOverlay } from '@/widgets/map-shell/ui/raster-overlay';
 import type { AreaMeta, AreaId, LayerResolveResponse, LayersByArea } from '@/shared/types/map';
@@ -24,6 +25,47 @@ function fitFeatureCollection(map: L.Map, featureCollection?: GeoJSON.FeatureCol
   if (bounds.isValid()) {
     map.fitBounds(bounds.pad(0.08));
   }
+}
+
+function MapInteractionTracker({ onInteractionChange }: { onInteractionChange: (value: boolean) => void }) {
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useMapEvents({
+    dragstart: () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = null;
+      }
+      onInteractionChange(true);
+    },
+    zoomstart: () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = null;
+      }
+      onInteractionChange(true);
+    },
+    dragend: () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+      }
+      settleTimerRef.current = setTimeout(() => onInteractionChange(false), 140);
+    },
+    zoomend: () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+      }
+      settleTimerRef.current = setTimeout(() => onInteractionChange(false), 140);
+    },
+  });
+
+  useEffect(() => () => {
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+    }
+  }, []);
+
+  return null;
 }
 
 function FitController({ aoi, area, parcels }: { aoi?: GeoJSON.FeatureCollection; area: AreaId; parcels?: GeoJSON.FeatureCollection }) {
@@ -77,6 +119,8 @@ export function MapShell({
   const selectedParcelDetail = useMapStore((state) => state.selectedParcelDetail);
   const setSelectedParcelId = useMapStore((state) => state.setSelectedParcelId);
   const setSelectedParcelDetail = useMapStore((state) => state.setSelectedParcelDetail);
+  const selectedParcelPoint = useMapStore((state) => state.selectedParcelPoint);
+  const setSelectedParcelPoint = useMapStore((state) => state.setSelectedParcelPoint);
   const openAnalytics = useMapStore((state) => state.openAnalytics);
   const setMetricId = useMapStore((state) => state.setMetricId);
   const setYear = useMapStore((state) => state.setYear);
@@ -85,13 +129,31 @@ export function MapShell({
 
   const [compositeLayerState, setCompositeLayerState] = useState<LayerResolveResponse | null>(null);
   const [metricLayerState, setMetricLayerState] = useState<LayerResolveResponse | null>(null);
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
   const activeVectors = vectors[selectedArea];
-  const selectedMetric = getMetricOptionById(selectedMetricId) ?? getMetricOptionById('ndvi');
+  const selectedMetric = selectedMetricId === 'none' ? undefined : (getMetricOptionById(selectedMetricId) ?? getMetricOptionById('ndvi'));
   const selectedBasemap = BASEMAPS.find((item) => item.id === selectedBasemapId) ?? BASEMAPS[0];
   const requestRef = useRef(0);
   const parcelRequestRef = useRef(0);
   const areaLayers = layersByArea[selectedArea];
   const metricAvailable = selectedMetric ? hasMetricKey(areaLayers[selectedMetric.group], selectedMetric.key) : false;
+  const fallbackParcelPoint = useMemo(() => {
+    if (!selectedParcelId || !activeVectors?.parcels) return undefined;
+
+    const feature = activeVectors.parcels.features.find((item) => {
+      const props = (item.properties ?? {}) as Record<string, unknown>;
+      return String(props.parcel_id ?? props.id ?? props.parcelId ?? '') === selectedParcelId;
+    });
+
+    if (!feature) return undefined;
+
+    const bounds = L.geoJSON(feature as never).getBounds();
+    if (!bounds.isValid()) return undefined;
+    const center = bounds.getCenter();
+    return { lat: center.lat, lng: center.lng };
+  }, [activeVectors?.parcels, selectedParcelId]);
+  const shouldHideRaster = selectedMetricId === 'none';
+  const shouldUseComposite = !shouldHideRaster && (!selectedMetric || selectedMetric.group === 'composites' || !metricAvailable);
 
   useEffect(() => {
     const years = areas.find((area) => area.id === selectedArea)?.years ?? [];
@@ -103,6 +165,7 @@ export function MapShell({
   }, [areas, selectedArea, selectedYear, setYear]);
 
   useEffect(() => {
+    if (selectedMetricId === 'none') return;
     if (!selectedMetric || metricAvailable) return;
 
     const nextMetricId = getDefaultMetricId(selectedMode, areaLayers);
@@ -116,11 +179,24 @@ export function MapShell({
 
     async function run() {
       const req = ++requestRef.current;
-      const composite = await resolveLayer(selectedArea, 'composites', 'annual_composite', selectedYear);
-      if (cancelled || req !== requestRef.current) return;
-      setCompositeLayerState(composite);
 
-      if (!selectedMetric || selectedMetric.group === 'composites' || !metricAvailable) {
+      if (shouldHideRaster) {
+        setCompositeLayerState(null);
+        setMetricLayerState(null);
+        return;
+      }
+
+      if (shouldUseComposite) {
+        const composite = await resolveLayer(selectedArea, 'composites', 'annual_composite', selectedYear);
+        if (cancelled || req !== requestRef.current) return;
+        setCompositeLayerState(composite);
+        setMetricLayerState(null);
+        return;
+      }
+
+      setCompositeLayerState(null);
+
+      if (!selectedMetric) {
         setMetricLayerState(null);
         return;
       }
@@ -139,7 +215,7 @@ export function MapShell({
     return () => {
       cancelled = true;
     };
-  }, [metricAvailable, selectedArea, selectedMetric, selectedYear]);
+  }, [metricAvailable, selectedArea, selectedMetric, selectedYear, shouldHideRaster, shouldUseComposite]);
 
   useEffect(() => {
     if (!selectedParcelId && selectedParcelDetail) {
@@ -155,8 +231,13 @@ export function MapShell({
 
     async function run() {
       const detail = await getParcelDetail(selectedArea, selectedParcelId, selectedYear);
+      const enriched = await enrichParcelDetailWithRasterMetrics(detail, {
+        area: selectedArea,
+        year: selectedYear,
+        point: selectedParcelPoint ?? fallbackParcelPoint,
+      });
       if (cancelled || req !== parcelRequestRef.current) return;
-      setSelectedParcelDetail(detail);
+      setSelectedParcelDetail(enriched);
     }
 
     run().catch((error) => {
@@ -169,7 +250,7 @@ export function MapShell({
     return () => {
       cancelled = true;
     };
-  }, [selectedArea, selectedParcelId, selectedYear, setSelectedParcelDetail]);
+  }, [fallbackParcelPoint, selectedArea, selectedParcelId, selectedParcelPoint, selectedYear, setSelectedParcelDetail]);
 
   useEffect(() => {
     if (!focusFavorite || !selectedParcelDetail) return;
@@ -194,21 +275,33 @@ export function MapShell({
 
   return (
     <>
-      <MapContainer center={[61.5, 129.7]} zoom={7} className="h-full w-full" zoomControl attributionControl={false}>
-        <TileLayer url={selectedBasemap.url} attribution={selectedBasemap.attribution} />
+      <MapContainer center={[61.5, 129.7]} zoom={7} className="h-full w-full" zoomControl={false} attributionControl={false} preferCanvas>
+        {selectedBasemap.url ? <TileLayer url={selectedBasemap.url} attribution={selectedBasemap.attribution} /> : null}
 
+        <MapInteractionTracker onInteractionChange={setIsMapInteracting} />
         <FitController area={selectedArea} aoi={activeVectors?.aoi} parcels={activeVectors?.parcels} />
 
         {compositeLayerState?.url ? (
-          <RasterOverlay url={compositeLayerState.url} group="composites" metricKey="annual_composite" />
+          <RasterOverlay
+            url={compositeLayerState.url}
+            group="composites"
+            metricKey="annual_composite"
+            quality={isMapInteracting ? 'interactive' : 'settled'}
+          />
         ) : null}
 
         {metricLayerState?.url ? (
-          <RasterOverlay url={metricLayerState.url} group={metricLayerState.group} metricKey={metricLayerState.metricKey} />
+          <RasterOverlay
+            url={metricLayerState.url}
+            group={metricLayerState.group}
+            metricKey={metricLayerState.metricKey}
+            quality={isMapInteracting ? 'interactive' : 'settled'}
+          />
         ) : null}
 
         {activeVectors?.aoi ? (
           <GeoJSON
+            key={`aoi-${selectedArea}`}
             data={activeVectors.aoi as never}
             smoothFactor={0}
             interactive={false}
@@ -218,6 +311,7 @@ export function MapShell({
 
         {activeVectors?.parcels ? (
           <GeoJSON
+            key={`parcels-${selectedArea}`}
             data={activeVectors.parcels as never}
             smoothFactor={0}
             style={parcelsStyle}
@@ -228,10 +322,11 @@ export function MapShell({
               layer.on('mouseout', () => {
                 layer.setStyle(parcelsStyle);
               });
-              layer.on('click', () => {
+              layer.on('click', (event) => {
                 const props = (feature.properties ?? {}) as Record<string, unknown>;
                 const parcelId = String(props.parcel_id ?? props.id ?? props.parcelId ?? '');
                 if (!parcelId) return;
+                setSelectedParcelPoint({ lat: event.latlng.lat, lng: event.latlng.lng });
                 setSelectedParcelId(parcelId);
               });
             }}

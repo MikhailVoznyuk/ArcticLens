@@ -5,15 +5,12 @@ import {
   MAP_MODE_OPTIONS,
   getAvailableMetricOptions,
   getDefaultMetricId,
-  getMetricOptionById,
 } from '@/shared/config/metric-catalog';
 import { IconCircleButton } from '@/shared/ui/icon-circle-button';
 import { PillSelect } from '@/shared/ui/pill-select';
 import { useMapStore } from '@/entities/map/model/use-map-store';
-import {twMerge} from "tailwind-merge";
+import { twMerge } from 'tailwind-merge';
 import type { AreaMeta, LayersByArea } from '@/shared/types/map';
-
-const QUICK_INDEX_IDS = ['ndvi', 'ndwi', 'osavi'] as const;
 
 export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersByArea: LayersByArea }) {
   const toolbarOpen = useMapStore((state) => state.toolbarOpen);
@@ -35,19 +32,14 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
     [areaLayers, selectedMode],
   );
 
-  const quickIndexOptions = useMemo(
-    () =>
-      QUICK_INDEX_IDS.map((id) => getMetricOptionById(id)).filter(
-        (item): item is NonNullable<ReturnType<typeof getMetricOptionById>> => Boolean(item),
-      ),
-    [],
+  const layerOptions = useMemo(
+    () => [{ value: 'none', label: 'Нет' }, ...metricOptions.map((item) => ({ value: item.id, label: item.label }))],
+    [metricOptions],
   );
 
-  const selectedQuickIndexId = useMemo(() => {
-    return QUICK_INDEX_IDS.includes(selectedMetricId as (typeof QUICK_INDEX_IDS)[number]) ? selectedMetricId : QUICK_INDEX_IDS[0];
-  }, [selectedMetricId]);
 
   useEffect(() => {
+    if (selectedMetricId === 'none') return;
     if (!metricOptions.some((item) => item.id === selectedMetricId)) {
       const nextMetricId = getDefaultMetricId(selectedMode, areaLayers);
       if (nextMetricId) setMetricId(nextMetricId);
@@ -57,10 +49,11 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
   return (
     <div className="absolute right-6 top-6 z-[850] flex items-center">
       <div
-          className={twMerge(`relative z-10 glass-panel flex  gap-3 translate-x-[28px] rounded-[30px] rounded-r-none py-2 overflow-hidden duration-300 ease-in-out`,
-              toolbarOpen ? 'w-[900px] px-4': 'w-0'
-          )}
-          style={!toolbarOpen ? {borderWidth: '0'} : {}}
+        className={twMerge(
+          'relative z-10 glass-panel flex gap-3 translate-x-[28px] rounded-[30px] rounded-r-none py-2 duration-300 ease-in-out',
+          toolbarOpen ? 'w-[900px] px-[10px]' : 'w-0 ',
+        )}
+        style={!toolbarOpen ? { borderWidth: '0' } : {}}
       >
         <div className="flex flex-nowrap gap-3">
           <PillSelect
@@ -68,7 +61,7 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
             value={selectedMode}
             onChange={(value) => setMode(value as typeof selectedMode)}
             options={MAP_MODE_OPTIONS}
-            className="w-[234px]"
+            className={`${toolbarOpen ? 'delay-200 duration-150 opacity-100' : 'opacity-0 duration-75'} w-[234px] ease-in-out`}
           />
 
           <PillSelect
@@ -76,14 +69,15 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
             value={selectedYear ? String(selectedYear) : ''}
             onChange={(value) => setYear(value ? Number(value) : undefined)}
             options={years.map((year) => ({ value: String(year), label: String(year) }))}
+            className={`${toolbarOpen ? 'delay-200 duration-150 opacity-100' : 'opacity-0 delay-0 duration-75'} ease-in-out`}
           />
 
           <PillSelect
             label="Слой:"
             value={selectedMetricId}
             onChange={setMetricId}
-            options={metricOptions.map((item) => ({ value: item.id, label: item.label }))}
-            className="w-[180px]"
+            options={layerOptions}
+            className={`${toolbarOpen ? 'delay-200 duration-150 opacity-100' : 'opacity-0 delay-0 duration-75'} w-[180px] ease-in-out`}
           />
 
           <PillSelect
@@ -91,11 +85,11 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
             value={selectedBasemapId}
             onChange={setBasemapId}
             options={BASEMAPS.map((item) => ({ value: item.id, label: item.label }))}
-            className="w-[224px]"
+            className={`${toolbarOpen ? 'delay-200 duration-150 opacity-100' : 'opacity-0 delay-0 duration-75'} w-[224px] ease-in-out`}
           />
         </div>
       </div>
-      <IconCircleButton className='relative z-20' onClick={toggleToolbar} aria-label="Открыть панель фильтров">
+      <IconCircleButton className="relative z-20" onClick={toggleToolbar} aria-label="Открыть панель фильтров">
         {toolbarOpen ? <SlidersHorizontal className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
       </IconCircleButton>
     </div>

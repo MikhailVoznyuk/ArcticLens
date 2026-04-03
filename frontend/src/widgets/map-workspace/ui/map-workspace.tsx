@@ -86,7 +86,7 @@ export default function MapWorkspace() {
         <div className="flex h-full flex-col items-center justify-center gap-3 bg-slate-100 px-6 text-center text-slate-700">
           <div className="text-xl font-semibold">Не удалось прочитать bundle</div>
           <div className="max-w-[760px] text-sm">
-            Проверьте существование <code>server/data/frontend_export</code> и наличие внутри <code>manifest.json</code>, <code>global</code> и <code>areas</code>.
+            Проверь, что backend видит <code>server/data/frontend_export</code> и внутри есть <code>manifest.json</code>, <code>global</code> и <code>areas</code>.
           </div>
           <pre className="max-w-[760px] overflow-auto rounded-3xl bg-slate-900 p-4 text-left text-xs text-slate-100">{error}</pre>
         </div>
