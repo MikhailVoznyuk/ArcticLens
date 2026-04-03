@@ -50,8 +50,8 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
     <div className="absolute right-6 top-6 z-[850] flex items-center">
       <div
         className={twMerge(
-          'relative z-10 glass-panel flex gap-3 translate-x-[28px] rounded-[30px] rounded-r-none py-2 overflow-hidden duration-300 ease-in-out',
-          toolbarOpen ? 'w-[900px] px-4' : 'w-0',
+          'relative z-10 glass-panel flex gap-3 translate-x-[28px] rounded-[30px] rounded-r-none py-2 duration-300 ease-in-out',
+          toolbarOpen ? 'w-[900px] px-[10px]' : 'w-0 ',
         )}
         style={!toolbarOpen ? { borderWidth: '0' } : {}}
       >
@@ -61,7 +61,7 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
             value={selectedMode}
             onChange={(value) => setMode(value as typeof selectedMode)}
             options={MAP_MODE_OPTIONS}
-            className="w-[234px]"
+            className={`${toolbarOpen ? 'delay-200 duration-150 opacity-100' : 'opacity-0 duration-75'} w-[234px] ease-in-out`}
           />
 
           <PillSelect
@@ -69,6 +69,7 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
             value={selectedYear ? String(selectedYear) : ''}
             onChange={(value) => setYear(value ? Number(value) : undefined)}
             options={years.map((year) => ({ value: String(year), label: String(year) }))}
+            className={`${toolbarOpen ? 'delay-200 duration-150 opacity-100' : 'opacity-0 delay-0 duration-75'} ease-in-out`}
           />
 
           <PillSelect
@@ -76,7 +77,7 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
             value={selectedMetricId}
             onChange={setMetricId}
             options={layerOptions}
-            className="w-[180px]"
+            className={`${toolbarOpen ? 'delay-200 duration-150 opacity-100' : 'opacity-0 delay-0 duration-75'} w-[180px] ease-in-out`}
           />
 
           <PillSelect
@@ -84,7 +85,7 @@ export function TopToolbar({ areas, layersByArea }: { areas: AreaMeta[]; layersB
             value={selectedBasemapId}
             onChange={setBasemapId}
             options={BASEMAPS.map((item) => ({ value: item.id, label: item.label }))}
-            className="w-[224px]"
+            className={`${toolbarOpen ? 'delay-200 duration-150 opacity-100' : 'opacity-0 delay-0 duration-75'} w-[224px] ease-in-out`}
           />
         </div>
       </div>

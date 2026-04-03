@@ -275,7 +275,7 @@ export function MapShell({
 
   return (
     <>
-      <MapContainer center={[61.5, 129.7]} zoom={7} className="h-full w-full" zoomControl attributionControl={false} preferCanvas>
+      <MapContainer center={[61.5, 129.7]} zoom={7} className="h-full w-full" zoomControl={false} attributionControl={false} preferCanvas>
         {selectedBasemap.url ? <TileLayer url={selectedBasemap.url} attribution={selectedBasemap.attribution} /> : null}
 
         <MapInteractionTracker onInteractionChange={setIsMapInteracting} />
